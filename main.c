@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 #include <string.h>
 
 #define DEFAULT_WIDTH 60
 #define DEFAULT_HEIGHT 30
-#define DEFAULT_THETA_SPEED 1
-#define DEFAULT_PHI_SPEED .33
+#define DEFAULT_THETA_SPEED .05
+#define DEFAULT_PHI_SPEED .01667
 #define DEFAULT_FRAME_RATE 24
 
 char distanceMappings[] = ".-+=%@#";
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     thetaSpeed /= frameRate;
     phiSpeed /= frameRate;
-    int frameTimeNs = (int)(1000000 / frameRate);
+    double frameTime = 1.0 / frameRate;
 
     double R = 2.0; 
     double r = 1.0; 
@@ -52,12 +53,15 @@ int main(int argc, char *argv[]) {
     char screenBuffer[bufferSize];
     double zBuffer[width * height];
 
-    while (1 == 1) {
+    clock_t startTime;
+
+    while (1) {
+        startTime = clock();
+
         memset(screenBuffer, ' ', bufferSize - 1);
         screenBuffer[bufferSize - 1] = '\0';
         memset(zBuffer, 0, sizeof(zBuffer));
 
-        system("clear");
         for (double u = 0; u < 2 * M_PI; u += 0.07) {         
             for (double v = 0; v < 2 * M_PI; v += 0.02) {    
                 
@@ -104,10 +108,21 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < height; i++) {
             screenBuffer[i * (width + 1) + width] = '\n';
         }
+
+        clock_t endTime = clock();
+        double deltaTime = (double)(endTime - startTime) / CLOCKS_PER_SEC;
+        double remainingTime = frameTime - deltaTime;
+
+        if (remainingTime > 0) {
+            usleep((useconds_t) (remainingTime * 1000000));
+        }
+
+        startTime = endTime;
         
-        printf("%s", screenBuffer);
+        printf("\033[2J\033[H");
         fflush(stdout);
-        usleep(frameTimeNs); 
+        write(1, screenBuffer, sizeof(screenBuffer) - 1);
+        
         theta += thetaSpeed;
         phi += phiSpeed;
     }
